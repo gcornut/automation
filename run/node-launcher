@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Maxium number of line in log file
+MAX_LOG=1000
+
+# Node.js arguments
+NODE_ARGS=""
+#NODE_ARGS="--require babel-polyfill"
+#"--harmony_rest_parameters --harmony_destructuring"
+
+# Project root dir
+DIR=$(realpath $( cd $(dirname $(realpath $0)); pwd -P )/..)
+
+# Current script name
+SCRIPT_NAME=$(basename $0)
+#SCRIPT_NAME=$1
+
+LOG_DIR=$DIR/logs
+# Create log dir (if needed)
+[ -d "$LOG_DIR" ] || mkdir "$LOG_DIR"
+
+# Prepare log file
+LOG=$LOG_DIR/$SCRIPT_NAME.log
+[ -f "$LOG" ] && {
+  tail -n $MAX_LOG $LOG > $LOG.2
+  mv $LOG.2 $LOG
+  echo -en "\n----------------------------------\n" >> $LOG
+}
+
+# Get corresponding JavaScript file
+SCRIPT=$DIR/src/$SCRIPT_NAME.js
+
+# Check exists
+[ -f "$SCRIPT" ] || {
+  echo "Error: script $SCRIPT does not exist. Exiting."
+  exit 1
+}
+
+# Launch Node.js
+#echo node $NODE_ARGS "$SCRIPT"
+$DIR/node_modules/.bin/babel-node $NODE_ARGS "$SCRIPT" $@ 2>&1 | tee -a "$LOG"
+exit ${PIPESTATUS[0]}

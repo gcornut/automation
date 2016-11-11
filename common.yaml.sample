@@ -1,0 +1,3 @@
+---
+  rclonePath: /usr/local/bin/rclone
+  borgPath: /usr/local/bin/borg
