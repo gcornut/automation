@@ -1,9 +1,10 @@
-import {timer, createLoggers, spawn, pathResolve, getConfig} from './common'
+import {timer, createLoggers, spawn, promisify,
+        pathResolve, getConfig, fail} from './common'
 import fs from 'fs'
-import promisify from 'promisify-es6'
+import os from 'os'
 
 let stat = promisify(fs.stat)
-let name = process.argv[2]
+let name = process.argv[2].replace('.yaml', '')
 
 timer('backup', async () => {
   let {borgPath} = await getConfig()
@@ -24,15 +25,20 @@ timer('backup', async () => {
   let sourceDir = await pathResolve(dir)
   await Promise.all([stat(repositoryPath), stat(sourceDir)])
 
+  let hostname = os.hostname().replace('.local', '')
+  let prefix = hostname + '-' + name
+  let backupName = repositoryPath + '::' + prefix + '-{now:%Y-%m-%d_%H:%M:%S}'
+
   // Create backup
   let args = ['create', '-x', '--verbose', '--stats', '--exclude-caches',
 	            '--compression', compression]
-  args.push(repositoryPath + '::{hostname}-{now:%Y-%m-%d_%H:%M:%S}', sourceDir)
+  args.push(backupName, sourceDir)
   args.push(...excludes.reduce((args, exclude) => args.concat(['--exclude', exclude]), []))
   await spawn(program, args, options)
 
   // Prune backup
-  args = [ 'prune', '-s', '--list', '--verbose' ].concat(retention.split(' '))
+  args = ['prune', '-s', '--list', '--verbose',
+          '--prefix=' + prefix].concat(retention.split(' '))
   args.push(repositoryPath)
   await spawn(program, args, options)
 })

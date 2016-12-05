@@ -1,12 +1,28 @@
 import fs from 'fs'
 import yaml from 'js-yaml'
-import childProcess from 'child-process-promise'
+import childProcess from 'child_process'
 import path from 'path'
 import tildeExpansion from 'tilde-expansion'
-import promisify from 'promisify-es6'
 
+let dryRun = false
+
+export let fail = err => { throw new Error(err) }
+
+// Transforms node-style callback demanding functions into promise returning functions
+export function promisify(fn) {
+  return (...args) => new Promise((resolve, reject) => {
+    fn(...args.concat([(err, val) => err ? reject(err) : resolve(val)]))
+  })
+}
 let readFile = promisify(fs.readFile)
-let tildExpand = path => new Promise((resolve, _) => tildeExpansion(path, resolve))
+
+// Resolve/join path and expand tilde character to the user directory
+export function pathResolve(...parts) {
+  return new Promise((resolve, _) => {
+    let joined = path.join(...parts)
+    tildeExpansion(joined, resolve)
+  }).then(path.resolve)
+}
 
 // Create stdout and stderr loggers with a string transformation function
 export function createLoggers(fn) {
@@ -73,15 +89,20 @@ export async function timer(name, callback) {
 }
 
 // Asynchronously spawn a program with args and other options
-export async function spawn(program, args, {env, logOut = console.log, logErr = console.error}) {
+export function spawn(
+  program, args, { env, logOut = console.log, logErr = console.error }
+) {
   logOut(program + ' ' + args.join(' '))
-  let promise = childProcess.spawn(program, args, { env })
-  promise.childProcess.stdout.on('data', c => logOut(c.toString()))
-  promise.childProcess.stderr.on('data', logErr)
-  return promise.then(() => logOut(program, 'finished'))
-}
+  if (dryRun) return
 
-// Resolve/join path and expand tilde character to the user directory
-export async function pathResolve(...parts) {
-  return path.resolve(await tildExpand(path.join(...parts)))
+  let process = childProcess.spawn(program, args, { env })
+  process.stdout.on('data', c => logOut(c.toString()))
+  process.stderr.on('data', logErr)
+  return new Promise((resolve, reject) => {
+    process.on('close', code => {
+      logOut(program, 'finished')
+      if (code === 0) resolve(code)
+      else reject(code)
+    })
+  })
 }

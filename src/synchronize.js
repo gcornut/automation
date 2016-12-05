@@ -1,10 +1,9 @@
-import {timer, createLoggers, spawn, pathResolve, getConfig} from './common'
-import promisify from 'promisify-es6'
+import {timer, createLoggers, spawn, promisify,
+        pathResolve, getConfig, fail} from './common'
 import parseFileSize from 'filesize-parser'
 
-let fail = err => { throw new Error(err) }
 let getSize = promisify(require('get-folder-size'))
-let name = process.argv[2]
+let name = process.argv[2].replace('.yaml', '')
 
 timer('synchronize', async () => {
   let {rclonePath} = await getConfig()
@@ -13,7 +12,7 @@ timer('synchronize', async () => {
 
   return synchronize.map(async ({path, sizeLimit}) => {
     let matches = path.match(/(\w+?):\/\/((.*?):(.*))/)
-    if (!matches.length === 5)
+    if (matches.length !== 5)
       fail('Unrecognized destination ' + path)
     let scheme = matches[1]
     let dest = matches[2]
