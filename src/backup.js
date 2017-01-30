@@ -8,7 +8,7 @@ let configName = process.argv[2].replace('.yaml', '')
 
 timer('backup', async () => {
   let {borgPath} = await getConfig()
-  let {repository, backup} = await getConfig(configName)
+  let {repository, passphrase, backup} = await getConfig(configName)
   if (!isArray(backup)) backup = [backup]
 
   // Check borg repository exists
@@ -17,7 +17,7 @@ timer('backup', async () => {
 
   // Prepare backup processes
   let backups = backup.map(
-    ({excludes, compression, passphrase, dir, retention, name}) => {
+    ({excludes, compression, dir, retention, name}) => {
       return async () => {
         // Borg program options
         let program = await pathResolve(borgPath)
