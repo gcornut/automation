@@ -46,10 +46,11 @@ const curry = fn => function curry_inner(...args) {
     return (...args2) => curry_inner(...args.concat(args2))
 }
 
-const is = type => value => value && value.constructor === type
-const isArray = is(Array)
-const isArrayOf = type => value => isArray(value) && value.every(is(type))
-const isPromise = is(Promise), isArrayOfPromise = isArrayOf(Promise)
+export const is = type => value => value && value.constructor === type
+export const isArray = is(Array)
+export const isArrayOf = type => value => isArray(value) && value.every(is(type))
+export const isPromise = is(Promise)
+export const isArrayOfPromise = isArrayOf(Promise)
 
 // Executes a callback with a timer and error handling
 export async function timer(name, callback) {
@@ -60,11 +61,11 @@ export async function timer(name, callback) {
   let exitCode, errors = []
   let catchAddError = error => errors.push(error)
 
-  let r = callback()
-  while (isPromise(r) || isArrayOfPromise(r)) {
-    if (isPromise(r))
+  let r = callback(), p, a
+  while ((p = isPromise(r)) || (a = isArrayOfPromise(r))) {
+    if (p)
       r = await r.catch(catchAddError)
-    else if(isArrayOfPromise(r))
+    else if(a)
       r = await Promise.all(r.map(r => r.catch(catchAddError)))
   }
 
@@ -97,7 +98,7 @@ export function spawn(
 
   let process = childProcess.spawn(program, args, { env })
   process.stdout.on('data', c => logOut(c.toString()))
-  process.stderr.on('data', logErr)
+  process.stderr.on('data', c => logErr(c.toString()))
   return new Promise((resolve, reject) => {
     process.on('close', code => {
       logOut(program, 'finished')

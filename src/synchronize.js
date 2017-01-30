@@ -1,23 +1,21 @@
 import {timer, createLoggers, spawn, promisify,
-        pathResolve, getConfig, fail} from './common'
+        pathResolve, getConfig, fail, isArray} from './common'
 import parseFileSize from 'filesize-parser'
 
 let getSize = promisify(require('get-folder-size'))
-let name = process.argv[2].replace('.yaml', '')
+let configName = process.argv[2].replace('.yaml', '')
 
 timer('synchronize', async () => {
   let {rclonePath} = await getConfig()
-  let {repository, synchronize} = await getConfig(name)
+  let {repository, synchronize} = await getConfig(configName)
   let repositoryPath = await pathResolve(repository)
+  if (!isArray(synchronize)) synchronize = [synchronize]
 
   return synchronize.map(async ({path, sizeLimit}) => {
     let matches = path.match(/(\w+?):\/\/((.*?):(.*))/)
     if (matches.length !== 5)
       fail('Unrecognized destination ' + path)
-    let scheme = matches[1]
-    let dest = matches[2]
-    let destHost = matches[3]
-    let destPath = matches[4]
+    let [_, scheme, dest, destHost, destPath] = matches
 
     if (destPath.trim() === '')
       fail('Destination folder should\'nt be blank')
@@ -42,7 +40,7 @@ timer('synchronize', async () => {
     args.push(repositoryPath, dest)
 
     let {logOut, logErr} = createLoggers(l =>
-      '[synchronize:' + name + '->' + destHost + '] ' + l
+      '[synchronize:' + configName + '->' + destHost + '] ' + l
     )
     await spawn(program, args, {logOut, logErr})
   })
