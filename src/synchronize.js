@@ -32,10 +32,11 @@ timer('synchronize', async () => {
     let program, args = []
     if (scheme === 'rclone') {
       program = await pathResolve(rclonePath)
-      args.push('sync')
+      args.push('sync', '--delete-after')
     } else if (scheme === 'rsync') {
       program = 'rsync'
-      args.push('-aL', '--safe-links', '--progress', '--delete')
+      args.push('-aL', '--safe-links', '--progress', '--delete-after')
+      repositoryPath += '/'
     } else fail('Unrecognized scheme ' + scheme)
     args.push(repositoryPath, dest)
 
