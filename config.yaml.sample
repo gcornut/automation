@@ -1,0 +1,16 @@
+---
+  repository: ~/.bck/min
+  passphrase: XXXXXX
+  synchronize:
+    - path: rclone://hubic:borg
+      sizeLimit: 25Gb
+  backup:
+    excludes:
+      - /home/gcornut/.cache
+      - /home/gcornut/.bck
+      - /home/gcornut/.local/share/Trash
+      - "*.class"
+      - "*.log"
+    compression: lzma,9
+    dir: ~/
+    retention: "-d 7 -w 6 -m 3"
